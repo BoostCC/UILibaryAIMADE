@@ -503,6 +503,279 @@ function Library.new(title)
             end)
         end
         
+        function tab:CreateColorPicker(name, default, callback)
+            local colorPicker = {
+                Value = default or Color3.fromRGB(255, 255, 255),
+                Open = false
+            }
+            
+            local ColorFrame = Instance.new("Frame")
+            ColorFrame.Name = name.."ColorPicker"
+            ColorFrame.Size = UDim2.new(1, 0, 0, 35)
+            ColorFrame.BackgroundTransparency = 1
+            ColorFrame.Parent = TabContent
+            
+            local ColorButton = Instance.new("TextButton")
+            ColorButton.Size = UDim2.new(1, -50, 1, 0)
+            ColorButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            ColorButton.BorderSizePixel = 0
+            ColorButton.Text = name
+            ColorButton.TextColor3 = TEXT_COLOR
+            ColorButton.TextSize = 14
+            ColorButton.Font = Enum.Font.Code
+            ColorButton.TextXAlignment = Enum.TextXAlignment.Left
+            ColorButton.AutoButtonColor = false
+            ColorButton.Parent = ColorFrame
+            
+            local ButtonPadding = Instance.new("UIPadding")
+            ButtonPadding.PaddingLeft = UDim.new(0, 10)
+            ButtonPadding.Parent = ColorButton
+            
+            local ButtonCorner = Instance.new("UICorner")
+            ButtonCorner.CornerRadius = UDim.new(0, 4)
+            ButtonCorner.Parent = ColorButton
+            
+            local ColorDisplay = Instance.new("Frame")
+            ColorDisplay.Size = UDim2.new(0, 30, 0, 30)
+            ColorDisplay.Position = UDim2.new(1, -40, 0.5, -15)
+            ColorDisplay.BackgroundColor3 = colorPicker.Value
+            ColorDisplay.BorderSizePixel = 0
+            ColorDisplay.Parent = ColorFrame
+            
+            local DisplayCorner = Instance.new("UICorner")
+            DisplayCorner.CornerRadius = UDim.new(0, 4)
+            DisplayCorner.Parent = ColorDisplay
+            
+            local ColorPickerWindow = Instance.new("Frame")
+            ColorPickerWindow.Name = "ColorPicker"
+            ColorPickerWindow.Size = UDim2.new(0, 200, 0, 240)
+            ColorPickerWindow.Position = UDim2.new(1, 10, 0, 0)
+            ColorPickerWindow.BackgroundColor3 = Color3.fromRGB(30, 30, 32)
+            ColorPickerWindow.BorderSizePixel = 0
+            ColorPickerWindow.Visible = false
+            ColorPickerWindow.ZIndex = 100
+            ColorPickerWindow.Parent = ColorFrame
+            
+            local WindowCorner = Instance.new("UICorner")
+            WindowCorner.CornerRadius = UDim.new(0, 6)
+            WindowCorner.Parent = ColorPickerWindow
+            
+            -- Color gradient
+            local ColorGradient = Instance.new("Frame")
+            ColorGradient.Size = UDim2.new(1, -20, 0, 150)
+            ColorGradient.Position = UDim2.new(0, 10, 0, 10)
+            ColorGradient.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            ColorGradient.BorderSizePixel = 0
+            ColorGradient.ZIndex = 101
+            ColorGradient.Parent = ColorPickerWindow
+            
+            local GradientCorner = Instance.new("UICorner")
+            GradientCorner.CornerRadius = UDim.new(0, 4)
+            GradientCorner.Parent = ColorGradient
+            
+            -- White gradient overlay
+            local WhiteGradient = Instance.new("UIGradient")
+            WhiteGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+            })
+            WhiteGradient.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0),
+                NumberSequenceKeypoint.new(1, 1)
+            })
+            WhiteGradient.Rotation = 90
+            WhiteGradient.Parent = ColorGradient
+            
+            -- Black gradient overlay
+            local BlackGradient = Instance.new("UIGradient")
+            BlackGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
+            })
+            BlackGradient.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 1),
+                NumberSequenceKeypoint.new(1, 0)
+            })
+            BlackGradient.Parent = ColorGradient
+            
+            -- Color selector
+            local ColorSelector = Instance.new("Frame")
+            ColorSelector.Size = UDim2.new(0, 10, 0, 10)
+            ColorSelector.AnchorPoint = Vector2.new(0.5, 0.5)
+            ColorSelector.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            ColorSelector.BorderSizePixel = 0
+            ColorSelector.ZIndex = 102
+            ColorSelector.Parent = ColorGradient
+            
+            local SelectorCorner = Instance.new("UICorner")
+            SelectorCorner.CornerRadius = UDim.new(1, 0)
+            SelectorCorner.Parent = ColorSelector
+            
+            -- Hue slider
+            local HueSlider = Instance.new("Frame")
+            HueSlider.Size = UDim2.new(1, -20, 0, 20)
+            HueSlider.Position = UDim2.new(0, 10, 0, 170)
+            HueSlider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            HueSlider.BorderSizePixel = 0
+            HueSlider.ZIndex = 101
+            HueSlider.Parent = ColorPickerWindow
+            
+            local HueCorner = Instance.new("UICorner")
+            HueCorner.CornerRadius = UDim.new(0, 4)
+            HueCorner.Parent = HueSlider
+            
+            local HueGradient = Instance.new("UIGradient")
+            HueGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+                ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
+                ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+                ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)),
+                ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+            })
+            HueGradient.Parent = HueSlider
+            
+            -- Hue selector
+            local HueSelector = Instance.new("Frame")
+            HueSelector.Size = UDim2.new(0, 3, 1, 0)
+            HueSelector.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            HueSelector.BorderSizePixel = 0
+            HueSelector.ZIndex = 102
+            HueSelector.Parent = HueSlider
+            
+            -- RGB Display
+            local RGBDisplay = Instance.new("TextLabel")
+            RGBDisplay.Size = UDim2.new(1, -20, 0, 30)
+            RGBDisplay.Position = UDim2.new(0, 10, 0, 200)
+            RGBDisplay.BackgroundTransparency = 1
+            RGBDisplay.Text = string.format("RGB: %d, %d, %d", 
+                colorPicker.Value.R * 255,
+                colorPicker.Value.G * 255,
+                colorPicker.Value.B * 255)
+            RGBDisplay.TextColor3 = TEXT_COLOR
+            RGBDisplay.TextSize = 14
+            RGBDisplay.Font = Enum.Font.Code
+            RGBDisplay.Parent = ColorPickerWindow
+            
+            local function updateColor()
+                local hue = math.clamp((HueSelector.Position.X.Scale), 0, 1)
+                local saturation = math.clamp(ColorSelector.Position.X.Scale, 0, 1)
+                local value = 1 - math.clamp(ColorSelector.Position.Y.Scale, 0, 1)
+                
+                local hsv = Color3.fromHSV(hue, saturation, value)
+                ColorGradient.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+                colorPicker.Value = hsv
+                
+                -- Animate color changes
+                TweenService:Create(ColorDisplay, TWEEN_INFO, {
+                    BackgroundColor3 = hsv
+                }):Play()
+                
+                RGBDisplay.Text = string.format("RGB: %d, %d, %d", 
+                    math.floor(hsv.R * 255),
+                    math.floor(hsv.G * 255),
+                    math.floor(hsv.B * 255))
+                
+                if callback then
+                    callback(hsv)
+                end
+            end
+            
+            local function updateHue(input)
+                local sizeX = HueSlider.AbsoluteSize.X
+                local posX = math.clamp(input.Position.X - HueSlider.AbsolutePosition.X, 0, sizeX)
+                local scale = posX / sizeX
+                
+                TweenService:Create(HueSelector, TweenInfo.new(0.1), {
+                    Position = UDim2.new(scale, -1, 0, 0)
+                }):Play()
+                
+                updateColor()
+            end
+            
+            local function updateSatVal(input)
+                local sizeX = ColorGradient.AbsoluteSize.X
+                local sizeY = ColorGradient.AbsoluteSize.Y
+                local posX = math.clamp(input.Position.X - ColorGradient.AbsolutePosition.X, 0, sizeX)
+                local posY = math.clamp(input.Position.Y - ColorGradient.AbsolutePosition.Y, 0, sizeY)
+                
+                TweenService:Create(ColorSelector, TweenInfo.new(0.1), {
+                    Position = UDim2.new(posX / sizeX, 0, posY / sizeY, 0)
+                }):Play()
+                
+                updateColor()
+            end
+            
+            -- Event connections
+            ColorButton.MouseButton1Click:Connect(function()
+                colorPicker.Open = not colorPicker.Open
+                ColorPickerWindow.Visible = colorPicker.Open
+            end)
+            
+            HueSlider.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    updateHue(input)
+                    local connection
+                    connection = RunService.RenderStepped:Connect(function()
+                        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                            updateHue(UserInputService:GetMouseLocation())
+                        else
+                            connection:Disconnect()
+                        end
+                    end)
+                end
+            end)
+            
+            ColorGradient.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    updateSatVal(input)
+                    local connection
+                    connection = RunService.RenderStepped:Connect(function()
+                        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                            updateSatVal(UserInputService:GetMouseLocation())
+                        else
+                            connection:Disconnect()
+                        end
+                    end)
+                end
+            end)
+            
+            -- Close color picker when clicking outside
+            UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 
+                    and colorPicker.Open 
+                    and not ColorPickerWindow.IsA(input.Position) then
+                    colorPicker.Open = false
+                    ColorPickerWindow.Visible = false
+                end
+            end)
+            
+            -- Set initial color
+            if default then
+                local h, s, v = Color3.toHSV(default)
+                HueSelector.Position = UDim2.new(h, -1, 0, 0)
+                ColorSelector.Position = UDim2.new(s, 0, 1 - v, 0)
+                ColorGradient.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+                ColorDisplay.BackgroundColor3 = default
+            end
+            
+            -- Hover effects
+            ColorButton.MouseEnter:Connect(function()
+                TweenService:Create(ColorButton, TWEEN_INFO, {
+                    BackgroundColor3 = HOVER_COLOR
+                }):Play()
+            end)
+            
+            ColorButton.MouseLeave:Connect(function()
+                TweenService:Create(ColorButton, TWEEN_INFO, {
+                    BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                }):Play()
+            end)
+            
+            return colorPicker
+        end
+        
         -- Add other UI elements (ColorPicker, etc.) here...
         
         return tab
