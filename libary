@@ -1,0 +1,555 @@
+local Library = {}
+Library.__index = Library
+
+-- Utility Functions
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+function Library.new(title)
+    local GUI = {
+        Toggled = true,
+        Dragging = false,
+        DragStart = nil,
+        StartPosition = nil
+    }
+    setmetatable(GUI, Library)
+    
+    -- Create ScreenGui
+    local MainGui = Instance.new("ScreenGui")
+    MainGui.Name = "ModernUI"
+    MainGui.Parent = CoreGui
+    GUI.MainGui = MainGui
+    
+    -- Main Container
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 800, 0, 500)
+    MainFrame.Position = UDim2.new(0.5, -400, 0.5, -250)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Parent = MainGui
+    GUI.MainFrame = MainFrame
+    
+    -- Top Bar
+    local TopBar = Instance.new("Frame")
+    TopBar.Name = "TopBar"
+    TopBar.Size = UDim2.new(1, 0, 0, 35)
+    TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
+    TopBar.BorderSizePixel = 0
+    TopBar.Parent = MainFrame
+    
+    -- Title
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Name = "Title"
+    TitleLabel.Size = UDim2.new(0, 200, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = title or "LEGITBOT"
+    TitleLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    TitleLabel.TextSize = 14
+    TitleLabel.Font = Enum.Font.Code
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Parent = TopBar
+    
+    -- Tab Container
+    local TabContainer = Instance.new("Frame")
+    TabContainer.Name = "TabContainer"
+    TabContainer.Size = UDim2.new(1, 0, 0, 30)
+    TabContainer.Position = UDim2.new(0, 0, 0, 35)
+    TabContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 33)
+    TabContainer.BorderSizePixel = 0
+    TabContainer.Parent = MainFrame
+    
+    local TabList = Instance.new("Frame")
+    TabList.Name = "TabList"
+    TabList.Size = UDim2.new(1, -20, 1, 0)
+    TabList.Position = UDim2.new(0, 10, 0, 0)
+    TabList.BackgroundTransparency = 1
+    TabList.Parent = TabContainer
+    
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    UIListLayout.Padding = UDim.new(0, 15)
+    UIListLayout.Parent = TabList
+    
+    -- Content Container
+    local ContentContainer = Instance.new("Frame")
+    ContentContainer.Name = "ContentContainer"
+    ContentContainer.Size = UDim2.new(1, -20, 1, -75)
+    ContentContainer.Position = UDim2.new(0, 10, 0, 65)
+    ContentContainer.BackgroundTransparency = 1
+    ContentContainer.Parent = MainFrame
+    
+    -- Make window draggable
+    TopBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            GUI.Dragging = true
+            GUI.DragStart = input.Position
+            GUI.StartPosition = MainFrame.Position
+        end
+    end)
+    
+    TopBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            GUI.Dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if GUI.Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - GUI.DragStart
+            MainFrame.Position = UDim2.new(
+                GUI.StartPosition.X.Scale,
+                GUI.StartPosition.X.Offset + delta.X,
+                GUI.StartPosition.Y.Scale,
+                GUI.StartPosition.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    function GUI:CreateTab(name)
+        local tab = {}
+        
+        -- Tab Button
+        local TabButton = Instance.new("TextButton")
+        TabButton.Name = name
+        TabButton.Size = UDim2.new(0, 100, 1, 0)
+        TabButton.BackgroundTransparency = 1
+        TabButton.Text = string.upper(name)
+        TabButton.TextColor3 = Color3.fromRGB(120, 120, 120)
+        TabButton.TextSize = 13
+        TabButton.Font = Enum.Font.Code
+        TabButton.Parent = TabList
+        
+        -- Tab Content
+        local TabContent = Instance.new("ScrollingFrame")
+        TabContent.Name = name.."Content"
+        TabContent.Size = UDim2.new(1, 0, 1, 0)
+        TabContent.BackgroundTransparency = 1
+        TabContent.ScrollBarThickness = 2
+        TabContent.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 60)
+        TabContent.Visible = false
+        TabContent.Parent = ContentContainer
+        
+        local ContentList = Instance.new("UIListLayout")
+        ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+        ContentList.Padding = UDim.new(0, 8)
+        ContentList.Parent = TabContent
+        
+        TabButton.MouseButton1Click:Connect(function()
+            for _, v in pairs(ContentContainer:GetChildren()) do
+                if v:IsA("ScrollingFrame") then
+                    v.Visible = false
+                end
+            end
+            TabContent.Visible = true
+            
+            for _, v in pairs(TabList:GetChildren()) do
+                if v:IsA("TextButton") then
+                    v.TextColor3 = Color3.fromRGB(120, 120, 120)
+                end
+            end
+            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end)
+        
+        function tab:CreateToggle(name, default, callback)
+            local toggle = {Value = default or false}
+            
+            local ToggleFrame = Instance.new("Frame")
+            ToggleFrame.Name = name.."Toggle"
+            ToggleFrame.Size = UDim2.new(1, 0, 0, 30)
+            ToggleFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
+            ToggleFrame.BorderSizePixel = 0
+            ToggleFrame.Parent = TabContent
+            
+            local ToggleLabel = Instance.new("TextLabel")
+            ToggleLabel.Size = UDim2.new(1, -50, 1, 0)
+            ToggleLabel.Position = UDim2.new(0, 35, 0, 0)
+            ToggleLabel.BackgroundTransparency = 1
+            ToggleLabel.Text = name
+            ToggleLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+            ToggleLabel.TextSize = 13
+            ToggleLabel.Font = Enum.Font.Code
+            ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+            ToggleLabel.Parent = ToggleFrame
+            
+            local Checkbox = Instance.new("Frame")
+            Checkbox.Size = UDim2.new(0, 16, 0, 16)
+            Checkbox.Position = UDim2.new(0, 10, 0.5, -8)
+            Checkbox.BackgroundColor3 = Color3.fromRGB(40, 40, 43)
+            Checkbox.BorderSizePixel = 0
+            Checkbox.Parent = ToggleFrame
+            
+            local CheckboxCorner = Instance.new("UICorner")
+            CheckboxCorner.CornerRadius = UDim.new(0, 3)
+            CheckboxCorner.Parent = Checkbox
+            
+            local CheckIcon = Instance.new("ImageLabel")
+            CheckIcon.Size = UDim2.new(0.7, 0, 0.7, 0)
+            CheckIcon.Position = UDim2.new(0.15, 0, 0.15, 0)
+            CheckIcon.BackgroundTransparency = 1
+            CheckIcon.Image = "rbxassetid://7072706620"
+            CheckIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+            CheckIcon.ImageTransparency = 1
+            CheckIcon.Parent = Checkbox
+            
+            local function updateToggle()
+                TweenService:Create(Checkbox, TweenInfo.new(0.15), {
+                    BackgroundColor3 = toggle.Value and Color3.fromRGB(61, 133, 224) or Color3.fromRGB(40, 40, 43)
+                }):Play()
+                
+                TweenService:Create(CheckIcon, TweenInfo.new(0.15), {
+                    ImageTransparency = toggle.Value and 0 or 1
+                }):Play()
+                
+                if callback then
+                    callback(toggle.Value)
+                end
+            end
+            
+            ToggleFrame.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    toggle.Value = not toggle.Value
+                    updateToggle()
+                end
+            end)
+            
+            if default then
+                toggle.Value = default
+                updateToggle()
+            end
+            
+            return toggle
+        end
+        
+        function tab:CreateSlider(name, min, max, default, callback)
+            local slider = {Value = default or min}
+            
+            local SliderFrame = Instance.new("Frame")
+            SliderFrame.Name = name.."Slider"
+            SliderFrame.Size = UDim2.new(1, 0, 0, 45)
+            SliderFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
+            SliderFrame.BorderSizePixel = 0
+            SliderFrame.Parent = TabContent
+            
+            local SliderLabel = Instance.new("TextLabel")
+            SliderLabel.Size = UDim2.new(1, -65, 0, 25)
+            SliderLabel.Position = UDim2.new(0, 10, 0, 0)
+            SliderLabel.BackgroundTransparency = 1
+            SliderLabel.Text = name
+            SliderLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+            SliderLabel.TextSize = 13
+            SliderLabel.Font = Enum.Font.Code
+            SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+            SliderLabel.Parent = SliderFrame
+            
+            local SliderValue = Instance.new("TextBox")
+            SliderValue.Size = UDim2.new(0, 45, 0, 25)
+            SliderValue.Position = UDim2.new(1, -55, 0, 0)
+            SliderValue.BackgroundTransparency = 1
+            SliderValue.Text = tostring(slider.Value)
+            SliderValue.TextColor3 = Color3.fromRGB(160, 160, 160)
+            SliderValue.TextSize = 13
+            SliderValue.Font = Enum.Font.Code
+            SliderValue.Parent = SliderFrame
+            
+            local SliderBack = Instance.new("Frame")
+            SliderBack.Size = UDim2.new(1, -20, 0, 4)
+            SliderBack.Position = UDim2.new(0, 10, 0, 32)
+            SliderBack.BackgroundColor3 = Color3.fromRGB(40, 40, 43)
+            SliderBack.BorderSizePixel = 0
+            SliderBack.Parent = SliderFrame
+            
+            local SliderFill = Instance.new("Frame")
+            SliderFill.Size = UDim2.new(0, 0, 1, 0)
+            SliderFill.BackgroundColor3 = Color3.fromRGB(61, 133, 224)
+            SliderFill.BorderSizePixel = 0
+            SliderFill.Parent = SliderBack
+            
+            local function updateSlider(value)
+                value = math.clamp(value, min, max)
+                value = math.floor(value * 100) / 100
+                slider.Value = value
+                SliderValue.Text = tostring(value)
+                
+                local percent = (value - min) / (max - min)
+                TweenService:Create(SliderFill, TweenInfo.new(0.1), {
+                    Size = UDim2.new(percent, 0, 1, 0)
+                }):Play()
+                
+                if callback then
+                    callback(value)
+                end
+            end
+            
+            SliderBack.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    local connection
+                    connection = RunService.RenderStepped:Connect(function()
+                        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                            local percent = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
+                            local value = min + (max - min) * percent
+                            updateSlider(value)
+                        else
+                            connection:Disconnect()
+                        end
+                    end)
+                end
+            end)
+            
+            SliderValue.FocusLost:Connect(function()
+                local num = tonumber(SliderValue.Text)
+                if num then
+                    updateSlider(num)
+                else
+                    SliderValue.Text = tostring(slider.Value)
+                end
+            end)
+            
+            updateSlider(default or min)
+            
+            return slider
+        end
+        
+        function tab:CreateColorPicker(name, default, callback)
+            local colorPicker = {Color = default or Color3.fromRGB(255, 255, 255)}
+            
+            local ColorFrame = Instance.new("Frame")
+            ColorFrame.Name = name.."ColorPicker"
+            ColorFrame.Size = UDim2.new(1, 0, 0, 30)
+            ColorFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
+            ColorFrame.BorderSizePixel = 0
+            ColorFrame.Parent = TabContent
+            
+            local ColorLabel = Instance.new("TextLabel")
+            ColorLabel.Size = UDim2.new(1, -60, 1, 0)
+            ColorLabel.Position = UDim2.new(0, 10, 0, 0)
+            ColorLabel.BackgroundTransparency = 1
+            ColorLabel.Text = name
+            ColorLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+            ColorLabel.TextSize = 13
+            ColorLabel.Font = Enum.Font.Code
+            ColorLabel.TextXAlignment = Enum.TextXAlignment.Left
+            ColorLabel.Parent = ColorFrame
+            
+            local ColorDisplay = Instance.new("Frame")
+            ColorDisplay.Size = UDim2.new(0, 30, 0, 20)
+            ColorDisplay.Position = UDim2.new(1, -40, 0.5, -10)
+            ColorDisplay.BackgroundColor3 = colorPicker.Color
+            ColorDisplay.BorderSizePixel = 0
+            ColorDisplay.Parent = ColorFrame
+            
+            local ColorCorner = Instance.new("UICorner")
+            ColorCorner.CornerRadius = UDim.new(0, 4)
+            ColorCorner.Parent = ColorDisplay
+            
+            -- Color picker popup
+            local ColorPickerGui = Instance.new("Frame")
+            ColorPickerGui.Name = "ColorPicker"
+            ColorPickerGui.Size = UDim2.new(0, 200, 0, 220)
+            ColorPickerGui.Position = UDim2.new(1, 10, 0, 0)
+            ColorPickerGui.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
+            ColorPickerGui.BorderSizePixel = 0
+            ColorPickerGui.Visible = false
+            ColorPickerGui.Parent = ColorFrame
+            ColorPickerGui.ZIndex = 100
+            
+            local ColorPickerCorner = Instance.new("UICorner")
+            ColorPickerCorner.CornerRadius = UDim.new(0, 4)
+            ColorPickerCorner.Parent = ColorPickerGui
+            
+            -- Color gradient
+            local ColorGradient = Instance.new("Frame")
+            ColorGradient.Size = UDim2.new(1, -20, 0, 150)
+            ColorGradient.Position = UDim2.new(0, 10, 0, 10)
+            ColorGradient.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            ColorGradient.BorderSizePixel = 0
+            ColorGradient.ZIndex = 101
+            ColorGradient.Parent = ColorPickerGui
+            
+            local ColorGradientCorner = Instance.new("UICorner")
+            ColorGradientCorner.CornerRadius = UDim.new(0, 4)
+            ColorGradientCorner.Parent = ColorGradient
+            
+            -- White gradient overlay
+            local WhiteGradient = Instance.new("UIGradient")
+            WhiteGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+            })
+            WhiteGradient.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0),
+                NumberSequenceKeypoint.new(1, 1)
+            })
+            WhiteGradient.Rotation = 90
+            WhiteGradient.Parent = ColorGradient
+            
+            -- Black gradient overlay
+            local BlackGradient = Instance.new("UIGradient")
+            BlackGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
+            })
+            BlackGradient.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 1),
+                NumberSequenceKeypoint.new(1, 0)
+            })
+            BlackGradient.Parent = ColorGradient
+            
+            -- Color selector
+            local ColorSelector = Instance.new("Frame")
+            ColorSelector.Size = UDim2.new(0, 10, 0, 10)
+            ColorSelector.AnchorPoint = Vector2.new(0.5, 0.5)
+            ColorSelector.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            ColorSelector.BorderSizePixel = 0
+            ColorSelector.ZIndex = 102
+            ColorSelector.Parent = ColorGradient
+            
+            local ColorSelectorCorner = Instance.new("UICorner")
+            ColorSelectorCorner.CornerRadius = UDim.new(1, 0)
+            ColorSelectorCorner.Parent = ColorSelector
+            
+            -- Hue slider
+            local HueSlider = Instance.new("Frame")
+            HueSlider.Size = UDim2.new(1, -20, 0, 20)
+            HueSlider.Position = UDim2.new(0, 10, 0, 170)
+            HueSlider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            HueSlider.BorderSizePixel = 0
+            HueSlider.ZIndex = 101
+            HueSlider.Parent = ColorPickerGui
+            
+            local HueSliderCorner = Instance.new("UICorner")
+            HueSliderCorner.CornerRadius = UDim.new(0, 4)
+            HueSliderCorner.Parent = HueSlider
+            
+            local HueGradient = Instance.new("UIGradient")
+            HueGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+                ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
+                ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+                ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)),
+                ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+            })
+            HueGradient.Parent = HueSlider
+            
+            -- Hue selector
+            local HueSelector = Instance.new("Frame")
+            HueSelector.Size = UDim2.new(0, 3, 1, 0)
+            HueSelector.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            HueSelector.BorderSizePixel = 0
+            HueSelector.ZIndex = 102
+            HueSelector.Parent = HueSlider
+            
+            -- Functions to handle color picking
+            local function updateColor()
+                local hue = math.clamp((HueSelector.Position.X.Scale), 0, 1)
+                local saturation = math.clamp(ColorSelector.Position.X.Scale, 0, 1)
+                local value = 1 - math.clamp(ColorSelector.Position.Y.Scale, 0, 1)
+                
+                local hsv = Color3.fromHSV(hue, saturation, value)
+                ColorGradient.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+                colorPicker.Color = hsv
+                ColorDisplay.BackgroundColor3 = hsv
+                
+                if callback then
+                    callback(hsv)
+                end
+            end
+            
+            local function updateHue(input)
+                local sizeX = HueSlider.AbsoluteSize.X
+                local posX = math.clamp(input.Position.X - HueSlider.AbsolutePosition.X, 0, sizeX)
+                local scale = posX / sizeX
+                
+                HueSelector.Position = UDim2.new(scale, -1, 0, 0)
+                updateColor()
+            end
+            
+            local function updateSatVal(input)
+                local sizeX = ColorGradient.AbsoluteSize.X
+                local sizeY = ColorGradient.AbsoluteSize.Y
+                local posX = math.clamp(input.Position.X - ColorGradient.AbsolutePosition.X, 0, sizeX)
+                local posY = math.clamp(input.Position.Y - ColorGradient.AbsolutePosition.Y, 0, sizeY)
+                
+                ColorSelector.Position = UDim2.new(posX / sizeX, 0, posY / sizeY, 0)
+                updateColor()
+            end
+            
+            -- Event connections
+            ColorDisplay.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    ColorPickerGui.Visible = not ColorPickerGui.Visible
+                end
+            end)
+            
+            HueSlider.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    updateHue(input)
+                    local connection
+                    connection = RunService.RenderStepped:Connect(function()
+                        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                            updateHue(UserInputService:GetMouseLocation())
+                        else
+                            connection:Disconnect()
+                        end
+                    end)
+                end
+            end)
+            
+            ColorGradient.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    updateSatVal(input)
+                    local connection
+                    connection = RunService.RenderStepped:Connect(function()
+                        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                            updateSatVal(UserInputService:GetMouseLocation())
+                        else
+                            connection:Disconnect()
+                        end
+                    end)
+                end
+            end)
+            
+            -- Close color picker when clicking outside
+            UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    local inFrame = mousePos.X >= ColorPickerGui.AbsolutePosition.X and
+                                  mousePos.X <= ColorPickerGui.AbsolutePosition.X + ColorPickerGui.AbsoluteSize.X and
+                                  mousePos.Y >= ColorPickerGui.AbsolutePosition.Y and
+                                  mousePos.Y <= ColorPickerGui.AbsolutePosition.Y + ColorPickerGui.AbsoluteSize.Y
+                    
+                    if not inFrame and not (mousePos.X >= ColorDisplay.AbsolutePosition.X and
+                                          mousePos.X <= ColorDisplay.AbsolutePosition.X + ColorDisplay.AbsoluteSize.X and
+                                          mousePos.Y >= ColorDisplay.AbsolutePosition.Y and
+                                          mousePos.Y <= ColorDisplay.AbsolutePosition.Y + ColorDisplay.AbsoluteSize.Y) then
+                        ColorPickerGui.Visible = false
+                    end
+                end
+            end)
+            
+            -- Set initial color
+            if default then
+                local h, s, v = Color3.toHSV(default)
+                HueSelector.Position = UDim2.new(h, -1, 0, 0)
+                ColorSelector.Position = UDim2.new(s, 0, 1 - v, 0)
+                ColorGradient.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+                colorPicker.Color = default
+                ColorDisplay.BackgroundColor3 = default
+            end
+            
+            return colorPicker
+        end
+        
+        return tab
+    end
+    
+    return GUI
+end
+
+return Library
